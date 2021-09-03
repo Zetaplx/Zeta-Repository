@@ -29,8 +29,27 @@ namespace Zeta.CSM
             QuedMessages = new List<string>();
         }
 
+        public void Initialize()
+        {
+            foreach (var node in TotalNodes) node.Value.Initialize(this);
+            SendMessage(Start);
+        }
+
         public bool Push<T>(string name, Func<T> get, Action<T> set) => State.Push(name, get, set);
         public bool Push<T>(string name, T t) => State.Push(name, t);
+
+        public void Update()
+        {
+            foreach (var active in ActiveNodes) if (TotalNodes.TryGetValue(active, out var node)) node.Update(State);
+            ProcessMessages();
+        }
+
+        public void FixedUpdate()
+        {
+            foreach (var active in ActiveNodes) if (TotalNodes.TryGetValue(active, out var node)) node.FixedUpdate(State);
+            ProcessMessages();
+        }
+
 
         public void ProcessMessages()
         {
@@ -59,15 +78,29 @@ namespace Zeta.CSM
         {
             QuedMessages.Add(message);
         }
-
         public void SendFromGate(string node, string gate = Default)
         {
             SendMessage(node + Splitter + gate);
         }
+        public void SendToState(string oNode, string oGate, string iNode, string iGate)
+        {
+            var key = oNode + Splitter + oGate;
+            if(!Connections.TryGetValue(key, out var con))
+            {
+                List<(string node, string gate)> list = new List<(string node, string gate)>();
+                list.Add((iNode, iGate));
+                Connections.Add(key, list);
+            } else if(!con.Contains((iNode, iGate)))
+            {
+                con.Add((iNode, iGate));
+            }
+
+            SendFromGate(oNode, oGate);
+        }
 
         public void AddNode(Node node)
         {
-            if (!TotalNodes.TryGetValue(node.Name, out var v)) { Nodes.Add(node.Name, node); node.Initialize(this); return; }
+            if (!TotalNodes.TryGetValue(node.Name, out var v)) { TotalNodes.Add(node.Name, node); node.Initialize(this); return; }
             throw new System.InvalidOperationException($"A node with name {node.Name} already present in State Machine.");
         }
         public bool RemoveNode(string name)
@@ -83,6 +116,18 @@ namespace Zeta.CSM
             newL.Add((inNode, inGate));
             Connections.Add(key, newL);
         }
+
+        public void AddConnection(string outNode, string inNode)
+        {
+            var outGate = Default;
+            var inGate = Default;
+            var key = outNode + Splitter + outGate;
+            if (Connections.TryGetValue(key, out var l)) { l.Add((inNode, inGate)); return; }
+            var newL = new List<(string, string)>();
+            newL.Add((inNode, inGate));
+            Connections.Add(key, newL);
+        }
+
         public void RemoveConnection(string outNode, string outGate, string inNode, string inGate = Default)
         {
             var key = outNode + Splitter + outGate;
@@ -132,13 +177,35 @@ namespace Zeta.CSM
 
         public Node(string name, StateMachine machine)
         {
+            Stack = new Rolodex();
+            EnterActions = new List<NodeAction>();
+            ExitActions = new List<NodeAction>();
+            UpdateActions = new List<NodeAction>();
+            FixedUpdateActions = new List<NodeAction>();
+
             Name = name;
 
             Stack.Push("Name", () => Name, (d) => Name = d);
             Stack.Push("Node", this);
 
-            Machine = machine;
+            Initialize(machine);
         }
+
+        public Node(string name)
+        {
+            Stack = new Rolodex();
+            EnterActions = new List<NodeAction>();
+            ExitActions = new List<NodeAction>();
+            UpdateActions = new List<NodeAction>();
+            FixedUpdateActions = new List<NodeAction>();
+
+            Name = name;
+
+            Stack.Push("Name", () => Name, (d) => Name = d);
+            Stack.Push("Node", this);
+        }
+
+        public void Initialize(StateMachine machine) => Machine = machine;
 
         public virtual void OnEnter(Rolodex state)       { }
         public virtual void OnUpdate(Rolodex state)      { }
@@ -176,6 +243,7 @@ namespace Zeta.CSM
 
         public void SendFromGate(string gate = StateMachine.Default) => Machine.SendFromGate(Name, gate);
         public void SendMesssage(string message) => Machine.SendMessage(message);
+        public void SendToState(string stateName, string oGate = StateMachine.Default, string iGate = StateMachine.Default) => Machine.SendToState(Name, oGate, stateName, iGate);
 
 
         public enum ActionType { ENTER, EXIT, UPDATE, FIXEDUPDATE, IGATE, OGATE }

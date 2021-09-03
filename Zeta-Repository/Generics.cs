@@ -17,6 +17,19 @@ namespace Zeta.Generics
             Fields = new Dictionary<string, object>();
         }
 
+        public object this[string name]
+        {
+            get
+            {
+                if (TryGetValue(name, out var output)) return output;
+                throw new System.EntryPointNotFoundException("Unable to find object with name \"" + name + "\" in the Rolodex.");
+            } 
+            set
+            {
+                Push(name, value);
+            }
+        }
+
         /// <summary>
         /// Push an object into the Rolodex. If there exists a property or field with the given name, will attempt to insert the object into that variable.
         /// </summary>
@@ -58,6 +71,14 @@ namespace Zeta.Generics
             return false;
         }
 
+        public bool Push(string name, object obj)
+        {
+            if (Properties.TryGetValue(name, out var prop)) { prop.setter(obj); return true; }
+            else if(Fields.TryGetValue(name, out var field)) { Fields[name] = obj; return true; }
+            Fields.Add(name, obj);
+            return false;
+        }
+
         /// <summary>
         /// Attempts to get a value of type T from the Rolodex. If successful, returns true and sets output to the value. Otherwise sets output to default and returns false.
         /// </summary>
@@ -80,7 +101,27 @@ namespace Zeta.Generics
             }
 
             output = default;
-            return true;
+            return false;
+        }
+
+        public bool TryGetValue(string name, out object output)
+        {
+            if (Properties.TryGetValue(name, out var prop))
+            {
+                output = prop.getter();
+                return true;
+
+            }
+            else if (Fields.TryGetValue(name, out var field))
+            {
+
+                output = field;
+                return true;
+
+            }
+
+            output = default;
+            return false;
         }
 
         /// <summary>
