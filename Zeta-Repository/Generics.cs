@@ -81,12 +81,12 @@ namespace Zeta.Generics
             else if (Fields.TryGetValue(name, out var field))
             {
                 Fields.Remove(name);
-                Properties.Add(name, (() => getter(), prop.setter = (d) => setter((T)d)));
+                Properties.Add(name, (() => getter(), prop.setter = (d) => setter(d)));
                 setter(field);
                 return true;
             }
 
-            Properties.Add(name, (() => getter(), prop.setter = (d) => setter((T)d)));
+            Properties.Add(name, (() => getter(), prop.setter = (d) => setter(d)));
 
             return false;
         }
