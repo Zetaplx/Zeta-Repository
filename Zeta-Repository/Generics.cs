@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 
 namespace Zeta.Generics
 {
     /// <summary>
     /// A generic data storage unit. Can store properties (or external variable references via getters and setters) and fields (local/internal variables) of any object type.
     /// </summary>
-    public class Rolodex
+    public class Rolodex : DynamicObject
     {
         Dictionary<string, (Func<object> getter, Action<object> setter)> Properties; // Effective references via getters and setters to external parameters
         Dictionary<string, object> Fields; // Localized parameters, are uneffected outside the Rolodex
@@ -134,5 +135,17 @@ namespace Zeta.Generics
             TryGetValue(name, out output);
             return output;
         }
+
+        public override bool TryGetMember(GetMemberBinder binder, out object result)
+        {
+            return TryGetValue(binder.Name, out result);
+        }
+
+        public override bool TrySetMember(SetMemberBinder binder, object value)
+        {
+            return Push(binder.Name, value);
+        }
+
+        public dynamic AsDynamic() => (dynamic)this;
     }
 }
