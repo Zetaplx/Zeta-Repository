@@ -31,7 +31,7 @@ namespace Zeta.Tests
             Assert.True(test02 == -2);
 
 
-            icoll.Push("Value", () => value, (d) => value = d);
+            icoll.Register("Value", () => value, (d) => value = d);
 
             // Storage Test
             var test1 = icoll.Pull<int>("Value");

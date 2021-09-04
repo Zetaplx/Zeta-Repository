@@ -35,7 +35,7 @@ namespace Zeta.CSM
             SendMessage(Start);
         }
 
-        public bool Push<T>(string name, Func<T> get, Action<T> set) => State.Push(name, get, set);
+        public bool Push<T>(string name, Func<T> get, Action<T> set) => State.Register(name, get, set);
         public bool Push<T>(string name, T t) => State.Push(name, t);
 
         public void Update()
@@ -185,7 +185,7 @@ namespace Zeta.CSM
 
             Name = name;
 
-            Stack.Push("Name", () => Name, (d) => Name = d);
+            Stack.Register("Name", () => Name, (d) => Name = d);
             Stack.Push("Node", this);
 
             Initialize(machine);
@@ -201,7 +201,7 @@ namespace Zeta.CSM
 
             Name = name;
 
-            Stack.Push("Name", () => Name, (d) => Name = d);
+            Stack.Register("Name", () => Name, (d) => Name = d);
             Stack.Push("Node", this);
         }
 

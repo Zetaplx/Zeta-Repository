@@ -12,6 +12,9 @@ namespace Zeta.Generics
         Dictionary<string, (Func<object> getter, Action<object> setter)> Properties; // Effective references via getters and setters to external parameters
         Dictionary<string, object> Fields; // Localized parameters, are uneffected outside the Rolodex
 
+        public delegate object Getter();
+        public delegate void Setter(object obj);
+
         public Rolodex()
         {
             Properties = new Dictionary<string, (Func<object> getter, Action<object> setter)>();
@@ -49,7 +52,7 @@ namespace Zeta.Generics
         /// <summary>
         /// Pushes a property into the Rolodex. If a given field exists with the same name, replaces it with property and sets property value to be equal to the old field.
         /// </summary>
-        public bool Push<T>(string name, Func<T> getter, Action<T> setter)
+        public bool Register<T>(string name, Func<T> getter, Action<T> setter)
         {
             if (Properties.TryGetValue(name, out var prop)) { prop.getter = () => getter(); prop.setter = (d) => setter((T)d); return true; }
             else if(Fields.TryGetValue(name, out var field))
@@ -71,6 +74,23 @@ namespace Zeta.Generics
 
             return false;
         }
+
+        public bool Register(string name, Getter getter, Setter setter)
+        {
+            if (Properties.TryGetValue(name, out var prop)) { prop.getter = () => getter(); prop.setter = (d) => setter(d); return true; }
+            else if (Fields.TryGetValue(name, out var field))
+            {
+                Fields.Remove(name);
+                Properties.Add(name, (() => getter(), prop.setter = (d) => setter((T)d)));
+                setter(field);
+                return true;
+            }
+
+            Properties.Add(name, (() => getter(), prop.setter = (d) => setter((T)d)));
+
+            return false;
+        }
+
 
         public bool Push(string name, object obj)
         {
@@ -143,7 +163,8 @@ namespace Zeta.Generics
 
         public override bool TrySetMember(SetMemberBinder binder, object value)
         {
-            return Push(binder.Name, value);
+            Push(binder.Name, value);
+            return true;
         }
 
         public dynamic AsDynamic() => (dynamic)this;
