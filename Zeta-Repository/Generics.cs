@@ -15,6 +15,9 @@ namespace Zeta.Generics
         public delegate object Getter();
         public delegate void Setter(object obj);
 
+        public Dictionary<string, (Func<object> getter, Action<object> setter)> GetProperties() => Properties;
+        public Dictionary<string, object> GetFields() => Fields;
+
         public Rolodex()
         {
             Properties = new Dictionary<string, (Func<object> getter, Action<object> setter)>();
@@ -48,6 +51,25 @@ namespace Zeta.Generics
             Fields.Add(name, obj);
             return false;
         }
+        public bool Push(string name, object obj)
+        {
+            if (Properties.TryGetValue(name, out var prop)) { prop.setter(obj); return true; }
+            else if (Fields.TryGetValue(name, out var field)) { Fields[name] = obj; return true; }
+            Fields.Add(name, obj);
+            return false;
+        }
+        public void PushAll(Rolodex dex)
+        {
+            foreach(var prop in dex.GetProperties())
+            {
+                Register(prop.Key, prop.Value.getter, prop.Value.setter);
+            }
+            foreach(var field in dex.GetFields())
+            {
+                Push(field.Key, field.Value);
+            }
+        }
+
 
         /// <summary>
         /// Pushes a property into the Rolodex. If a given field exists with the same name, replaces it with property and sets property value to be equal to the old field.
@@ -74,7 +96,6 @@ namespace Zeta.Generics
 
             return false;
         }
-
         public bool Register(string name, Getter getter, Setter setter)
         {
             if (Properties.TryGetValue(name, out var prop)) { prop.getter = () => getter(); prop.setter = (d) => setter(d); return true; }
@@ -91,14 +112,6 @@ namespace Zeta.Generics
             return false;
         }
 
-
-        public bool Push(string name, object obj)
-        {
-            if (Properties.TryGetValue(name, out var prop)) { prop.setter(obj); return true; }
-            else if(Fields.TryGetValue(name, out var field)) { Fields[name] = obj; return true; }
-            Fields.Add(name, obj);
-            return false;
-        }
 
         /// <summary>
         /// Attempts to get a value of type T from the Rolodex. If successful, returns true and sets output to the value. Otherwise sets output to default and returns false.
