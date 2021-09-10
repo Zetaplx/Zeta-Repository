@@ -38,13 +38,13 @@ namespace Zeta.CSM
 
         public void Update()
         {
-            foreach (var active in AllNodes) if (active.Value.Active) active.Value.Update(State);
+            foreach (var active in AllNodes) if (active.Value.Active) active.Value.DoUpdate(State);
             ProcessMessages();
         }
 
         public void FixedUpdate()
         {
-            foreach (var active in AllNodes) if (active.Value.Active) active.Value.FixedUpdate(State);
+            foreach (var active in AllNodes) if (active.Value.Active) active.Value.DoFixedUpdate(State);
             ProcessMessages();
         }
 
@@ -59,7 +59,7 @@ namespace Zeta.CSM
                     {
                         if (AllNodes.TryGetValue(target.node, out var tNode))
                         {
-                            tNode.Enter(State, target.gate);
+                            tNode.DoEnter(State, target.gate);
                         }
                     }
                 }
@@ -167,10 +167,10 @@ namespace Zeta.CSM
         StateMachine Machine;
 
         public delegate void NodeAction(Rolodex state, Rolodex stack);
-        public List<NodeAction> EnterActions;
-        public List<NodeAction> ExitActions;
-        public List<NodeAction> UpdateActions;
-        public List<NodeAction> FixedUpdateActions;
+        public event NodeAction OnEnter;
+        public event NodeAction OnExit;
+        public event NodeAction OnUpdate;
+        public event NodeAction OnFixedUpdate;
 
         public Dictionary<string, NodeAction> IGateActions = new Dictionary<string, NodeAction>();
         public Dictionary<string, NodeAction> OGateActions = new Dictionary<string, NodeAction>();
@@ -180,10 +180,6 @@ namespace Zeta.CSM
         public Node(string name, StateMachine machine)
         {
             Stack = new Rolodex();
-            EnterActions = new List<NodeAction>();
-            ExitActions = new List<NodeAction>();
-            UpdateActions = new List<NodeAction>();
-            FixedUpdateActions = new List<NodeAction>();
 
             Name = name;
 
@@ -196,10 +192,6 @@ namespace Zeta.CSM
         public Node(string name)
         {
             Stack = new Rolodex();
-            EnterActions = new List<NodeAction>();
-            ExitActions = new List<NodeAction>();
-            UpdateActions = new List<NodeAction>();
-            FixedUpdateActions = new List<NodeAction>();
 
             Name = name;
 
@@ -209,52 +201,52 @@ namespace Zeta.CSM
 
         public void Initialize(StateMachine machine) => Machine = machine;
 
-        public virtual void OnEnter(Rolodex state) { }
-        public virtual void OnUpdate(Rolodex state) { }
-        public virtual void OnFixedUpdate(Rolodex state) { }
-        public virtual void OnExit(Rolodex state) { }
+        public virtual void Enter(Rolodex state) { }
+        public virtual void Update(Rolodex state) { }
+        public virtual void FixedUpdate(Rolodex state) { }
+        public virtual void Exit(Rolodex state) { }
 
-        public void Enter(Rolodex state, string iGate = StateMachine.Default)
+        public void DoEnter(Rolodex state, string iGate = StateMachine.Default)
         {
             Active = true;
 
             if (IGateActions.TryGetValue(iGate, out var v)) v.Invoke(state, Stack);
 
-            foreach (var action in EnterActions) { action.Invoke(state, Stack); }
-
-            OnEnter(state);
+            OnEnter?.Invoke(state, Stack);
+            Enter(state);
         }
-        public void Update(Rolodex state)
+        public void DoUpdate(Rolodex state)
         {
-            foreach (var action in UpdateActions) { action.Invoke(state, Stack); }
+            OnUpdate?.Invoke(state, Stack);
 
-            OnUpdate(state);
+            Update(state);
         }
-        public void FixedUpdate(Rolodex state)
+        public void DoFixedUpdate(Rolodex state)
         {
-            foreach (var action in FixedUpdateActions) { action.Invoke(state, Stack); }
+            OnFixedUpdate?.Invoke(state, Stack);
 
-            OnFixedUpdate(state);
+            FixedUpdate(state);
         }
-        public void Exit(Rolodex state, string oGate = StateMachine.Default, bool exit = true)
+        public void DoExit(Rolodex state, string oGate = StateMachine.Default, bool exit = true)
         {
             Active = !exit;
 
+
+
+            OnExit?.Invoke(state, Stack);
+            Exit(state);
+
             if (OGateActions.TryGetValue(oGate, out var v)) v.Invoke(state, Stack);
-
-            foreach (var action in ExitActions) { action.Invoke(state, Stack); }
-
-            OnExit(state);
         }
 
         public void SendFromGate(Rolodex state, string gate = StateMachine.Default, bool exit = true) {
-            Exit(state, gate, exit);
+            DoExit(state, gate, exit);
             Machine.SendFromGate(Name, gate); 
         }
         public void SendMesssage(string message) => Machine.SendMessage(message);
         public void SendToState(Rolodex state, string targetName, string oGate = StateMachine.Default, string iGate = StateMachine.Default, bool exit = true)
         {
-            Exit(state, oGate, exit);
+            DoExit(state, oGate, exit);
             Machine.SendToState(Name, oGate, targetName, iGate);
         }
 
@@ -302,10 +294,10 @@ namespace Zeta.CSM
             return this;
         }
 
-        void AddEnterAction(NodeAction action) { EnterActions.Add(action); }
-        void AddExitAction(NodeAction action) { ExitActions.Add(action); }
-        void AddUpdateAction(NodeAction action) { UpdateActions.Add(action); }
-        void AddFixedUpdateAction(NodeAction action) { FixedUpdateActions.Add(action); }
+        void AddEnterAction(NodeAction action) { OnEnter += action; }
+        void AddExitAction(NodeAction action) { OnExit += action; }
+        void AddUpdateAction(NodeAction action) { OnUpdate += action; }
+        void AddFixedUpdateAction(NodeAction action) { OnFixedUpdate += action; }
         void SetIGate(string iGate, NodeAction action) { if (!IGateActions.TryGetValue(iGate, out var a)) IGateActions.Add(iGate, action); }
         void SetOGate(string oGate, NodeAction action) { if (!OGateActions.TryGetValue(oGate, out var a)) OGateActions.Add(oGate, action); }
 
