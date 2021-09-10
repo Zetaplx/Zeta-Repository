@@ -41,13 +41,11 @@ namespace Zeta.CSM
             foreach (var active in AllNodes) if (active.Value.Active) active.Value.DoUpdate(State);
             ProcessMessages();
         }
-
         public void FixedUpdate()
         {
             foreach (var active in AllNodes) if (active.Value.Active) active.Value.DoFixedUpdate(State);
             ProcessMessages();
         }
-
 
         public void ProcessMessages()
         {
