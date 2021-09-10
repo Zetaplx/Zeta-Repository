@@ -171,7 +171,9 @@ namespace Zeta.Generics
 
         public override bool TryGetMember(GetMemberBinder binder, out object result)
         {
-            return TryGetValue(binder.Name, out result);
+            var b = TryGetValue(binder.Name, out result);
+            if (!b) throw new IndexOutOfRangeException("Variable not found in rolodex");
+            return true;
         }
 
         public override bool TrySetMember(SetMemberBinder binder, object value)
