@@ -300,4 +300,26 @@ namespace Zeta.CSM
         void SetOGate(string oGate, NodeAction action) { if (!OGateActions.TryGetValue(oGate, out var a)) OGateActions.Add(oGate, action); }
 
     }
+
+    public class Trigger : Node
+    {
+        public Func<bool> Condition;
+
+
+        public Trigger(string name, StateMachine machine, Func<bool> condition = default) : base (name, machine) 
+        { 
+            Condition = condition;
+        }
+
+        public override void Update(Rolodex state)
+        {
+            base.Update(state);
+            var con = Condition();
+            if(!Stack.Pull<bool>("ConditionToggle") && con)
+            {
+                SendFromGate(state, StateMachine.DefaultGate, false);
+            }
+            Stack.Push("ConditionToggle", con);
+        }
+    }
 }

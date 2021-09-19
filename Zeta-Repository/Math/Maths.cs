@@ -8,6 +8,15 @@ namespace Zeta.Math
 {
     public interface AlgebraicOperator<T>
     {
+        public T Add(T t1, T t2);
+        public T Mult(T t1, T t2);
+        public T Inverse(T t);
+        public T Negate(T t);
+        public T Sqrt(T t);
+        public T Sin(T t);
+        public T Cos(T t);
+        public T Atan(T y, T x);
+
         public T Unit { get; }
         public T Zero { get; }
         public int CompareTo(T t1, T t2);
@@ -36,6 +45,66 @@ namespace Zeta.Math
         {
             distFunc ??= (a, b) => Abs(b - a);
             return distFunc(a, b) < limit;
+        }
+
+        public static int Factorial(int n)
+        {
+            if (n < 0) throw new System.InvalidOperationException("Cannot find factorial of non-positive integers.");
+            int val = 1;
+            for(int i = n; i > 0; i++)
+            {
+                val *= i;
+            }
+            return val;
+        }
+
+        public static int Choose(int n, int r)
+        {
+            if (r < 1 || n < 1) throw new System.InvalidOperationException("N and R must be positive integers.");
+            if (r > n) throw new System.InvalidOperationException("Cannot chose larger than set size");
+            return Factorial(n) / (Factorial(r) * Factorial(n - 1));
+        }
+
+        public static float Max(params float[] arr)
+        {
+            if (arr.Length == 0) throw new System.InvalidOperationException("Cannot find max of empty array.");
+            var val = arr[0];
+            foreach(var v in arr)
+            {
+                if (v > val) val = v;
+            }
+            return val;
+        }
+        public static float Min(params float[] arr)
+        {
+            if (arr.Length == 0) throw new System.InvalidOperationException("Cannot find min of empty array.");
+            var val = arr[0];
+            foreach (var v in arr)
+            {
+                if (v < val) val = v;
+            }
+            return val;
+        }
+
+        public static int Max(params int[] arr)
+        {
+            if (arr.Length == 0) throw new System.InvalidOperationException("Cannot find max of empty array.");
+            var val = arr[0];
+            foreach (var v in arr)
+            {
+                if (v > val) val = v;
+            }
+            return val;
+        }
+        public static int Min(params int[] arr)
+        {
+            if (arr.Length == 0) throw new System.InvalidOperationException("Cannot find min of empty array.");
+            var val = arr[0];
+            foreach (var v in arr)
+            {
+                if (v < val) val = v;
+            }
+            return val;
         }
     }
 
@@ -200,6 +269,50 @@ namespace Zeta.Math
         public static float AngleLerp(float startAngle, float endAngle, float t, AngleMode mode = AngleMode.DEGREES)
         {
             return MathGenerics.Lerp(startAngle, endAngle, t, (a, b) => AngleDistance(a, b, mode));
+        }
+    }
+
+    public class FloatOperator : AlgebraicOperator<float>
+    {
+        public const float StandardPercision = 0.0005f;
+        private float percision;
+
+        public FloatOperator(float p = StandardPercision)
+        {
+            percision = p;
+        }
+
+        public float Add(float t1, float t2)
+        {
+            return t1 + t2;
+        }
+        public float Mult(float t1, float t2)
+        {
+            return t1 * t2;
+        }
+        public float Inverse(float t)
+        {
+            return 1/t;
+        }
+        public float Negate(float t)
+        {
+            return -t;
+        }
+        public float Sqrt(float t)
+        {
+            return (float)System.Math.Sqrt(t);
+        }
+        public float Sin(float t) => (float)System.Math.Sin(t);
+        public float Cos(float t) => (float)System.Math.Cos(t);
+        public float Atan(float y, float x) => (float)System.Math.Atan2(y, x);
+
+        public float Unit { get { return 1; } }
+        public float Zero { get { return 0; } }
+        public int CompareTo(float t1, float t2)
+        {
+            if (t1 - t2 > 0.0005f) return 1;
+            if (t1 - t2 < -0.0005f) return -1;
+            return 0;
         }
     }
 }

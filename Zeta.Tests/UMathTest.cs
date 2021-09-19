@@ -7,8 +7,6 @@ using Zeta.Math.Unity;
 
 namespace Zeta.Tests
 {
-    
-    
     public class UMathTest
     {
 
